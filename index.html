@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mahitha Bushap — Portfolio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Patrick+Hand&family=Permanent+Marker&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --paper: #FFFEF7;
+            --paper-shadow: #E8E6D8;
+            --ink: #2C2C2C;
+            --pink: #E8B4C8;
+            --blue-ink: #4A7C9E;
+            --pencil-gray: #8B8B8B;
+            --notebook-line: rgba(44, 44, 44, 0.1);
+        }
+
+        body {
+            font-family: 'Patrick Hand', cursive;
+            background: linear-gradient(135deg, #B8A798 0%, #8B7968 100%);
+            color: var(--ink);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            perspective: 2000px;
+        }
+
+        /* Notebook Container */
+        .notebook {
+            width: 90vw;
+            max-width: 1200px;
+            height: 85vh;
+            position: relative;
+            transform-style: preserve-3d;
+        }
+
+        /* Page */
+        .page {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: var(--paper);
+            border-radius: 8px;
+            box-shadow: 
+                0 10px 40px rgba(0, 0, 0, 0.3),
+                inset 0 0 100px rgba(0, 0, 0, 0.02);
+            transform-style: preserve-3d;
+            transform-origin: left center;
+            transition: transform 1s cubic-bezier(0.645, 0.045, 0.355, 1);
+            backface-visibility: hidden;
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+            z-index: 10;
+        }
+
+        .page.flipped {
+            transform: rotateY(-180deg);
+            z-index: 5;
+        }
+
+        /* Notebook Lines */
+        .page::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: repeating-linear-gradient(
+                transparent,
+                transparent 29px,
+                var(--notebook-line) 29px,
+                var(--notebook-line) 30px
+            );
+            pointer-events: none;
+            border-radius: 8px;
+        }
+
+        /* Left margin line */
+        .page::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 80px;
+            bottom: 0;
+            width: 2px;
+            background: var(--pink);
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* Page Content */
+        .page-content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            padding: 60px 80px 60px 120px;
+            overflow-y: auto;
+            z-index: 1;
+        }
+
+        /* Scrollbar styling */
+        .page-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .page-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .page-content::-webkit-scrollbar-thumb {
+            background: var(--pink);
+            border-radius: 4px;
+        }
+
+        /* Page Numbers */
+        .page-number {
+            position: absolute;
+            bottom: 30px;
+            right: 50px;
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 0.9rem;
+            color: var(--pencil-gray);
+            z-index: 2;
+        }
+
+        /* Navigation Arrows */
+        .nav-arrow {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 60px;
+            height: 60px;
+            background: var(--paper);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            font-size: 1.5rem;
+            color: var(--ink);
+            border: 2px solid var(--pink);
+        }
+
+        .nav-arrow:hover {
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-arrow.prev {
+            left: 20px;
+        }
+
+        .nav-arrow.next {
+            right: 20px;
+        }
+
+        .nav-arrow.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* Page Indicator Dots */
+        .page-indicators {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 1000;
+        }
+
+        .indicator-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--paper);
+            border: 2px solid var(--pink);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .indicator-dot.active {
+            background: var(--pink);
+            transform: scale(1.3);
+        }
+
+        /* Typography */
+        .page-title {
+            font-family: 'Permanent Marker', cursive;
+            font-size: 4rem;
+            color: var(--pink);
+            margin-bottom: 2rem;
+            line-height: 1.2;
+            text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-subtitle {
+            font-family: 'Caveat', cursive;
+            font-size: 1.8rem;
+            color: var(--pencil-gray);
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+
+        .handwritten-text {
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1.3rem;
+            line-height: 1.8;
+            color: var(--ink);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Project Cards */
+        .project-card {
+            background: rgba(232, 180, 200, 0.1);
+            border: 2px dashed var(--pink);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .project-tag {
+            display: inline-block;
+            background: var(--pink);
+            color: white;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-weight: 500;
+        }
+
+        .project-title-card {
+            font-family: 'Caveat', cursive;
+            font-size: 2.2rem;
+            color: var(--pink);
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .project-description {
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1.1rem;
+            line-height: 1.7;
+            color: var(--ink);
+            margin-bottom: 1rem;
+        }
+
+        .project-link {
+            display: inline-block;
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 0.95rem;
+            color: var(--blue-ink);
+            text-decoration: none;
+            border-bottom: 2px solid var(--blue-ink);
+            padding-bottom: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .project-link:hover {
+            color: var(--pink);
+            border-bottom-color: var(--pink);
+        }
+
+        /* Doodles */
+        .doodle {
+            position: absolute;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        .doodle-star {
+            font-size: 2rem;
+            color: var(--pink);
+            top: 50px;
+            right: 100px;
+        }
+
+        .doodle-heart {
+            font-size: 1.5rem;
+            color: var(--pink);
+            bottom: 100px;
+            left: 150px;
+        }
+
+        .doodle-arrow {
+            font-size: 2.5rem;
+            color: var(--blue-ink);
+            top: 200px;
+            right: 150px;
+            transform: rotate(-15deg);
+        }
+
+        /* Contact Section Styling */
+        .contact-info {
+            background: rgba(74, 124, 158, 0.1);
+            border: 2px solid var(--blue-ink);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .contact-email {
+            font-family: 'Caveat', cursive;
+            font-size: 1.8rem;
+            color: var(--blue-ink);
+            text-decoration: none;
+            border-bottom: 3px solid var(--blue-ink);
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        .contact-email:hover {
+            color: var(--pink);
+            border-bottom-color: var(--pink);
+        }
+
+        .social-links {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .social-link {
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1.1rem;
+            color: var(--ink);
+            text-decoration: none;
+            border: 2px solid var(--ink);
+            padding: 0.5rem 1.2rem;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .social-link:hover {
+            background: var(--pink);
+            border-color: var(--pink);
+            color: white;
+        }
+
+        /* Studio Section */
+        .highlight {
+            background: linear-gradient(180deg, transparent 60%, var(--pink) 60%);
+            padding: 0 4px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .notebook {
+                width: 95vw;
+                height: 90vh;
+            }
+
+            .page-content {
+                padding: 40px 30px 40px 50px;
+            }
+
+            .page-title {
+                font-size: 2.5rem;
+            }
+
+            .page-subtitle {
+                font-size: 1.3rem;
+            }
+
+            .handwritten-text {
+                font-size: 1.1rem;
+            }
+
+            .project-title-card {
+                font-size: 1.8rem;
+            }
+
+            .nav-arrow {
+                width: 50px;
+                height: 50px;
+            }
+
+            .nav-arrow.prev {
+                left: 10px;
+            }
+
+            .nav-arrow.next {
+                right: 10px;
+            }
+
+            .page::after {
+                left: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="notebook">
+        <!-- Page 1: Cover/Intro -->
+        <div class="page active" data-page="0">
+            <div class="page-content">
+                <div class="doodle doodle-star">★</div>
+                <div class="doodle doodle-heart">♥</div>
+                <h1 class="page-title">Mahitha Bushap</h1>
+                <p class="page-subtitle">Designer × Developer × Creator</p>
+                <p class="handwritten-text">
+                    Hey there! 👋 Welcome to my portfolio notebook. 
+                </p>
+                <p class="handwritten-text">
+                    I'm a product designer and developer creating innovative solutions at the intersection of AI, 3D technology, and user experience.
+                </p>
+                <p class="handwritten-text">
+                    I specialize in building things that combine <span class="highlight">accessibility</span>, <span class="highlight">virtual experiences</span>, and <span class="highlight">intelligent systems</span>.
+                </p>
+                <p class="handwritten-text" style="margin-top: 3rem; font-size: 1.5rem; color: var(--pink);">
+                    Flip through to see my projects →
+                </p>
+            </div>
+            <div class="page-number">01</div>
+        </div>
+
+        <!-- Page 2: ThinkFlow -->
+        <div class="page" data-page="1">
+            <div class="page-content">
+                <div class="doodle doodle-arrow">➜</div>
+                <h2 class="page-subtitle" style="color: var(--pink); margin-bottom: 3rem;">My Projects</h2>
+                
+                <div class="project-card">
+                    <span class="project-tag">UX Design · Figma</span>
+                    <h3 class="project-title-card">ThinkFlow</h3>
+                    <p class="project-description">
+                        ADHD-focused productivity glasses with intelligent wireframe design. A comprehensive Figma prototype designed to help users with ADHD manage their workflow and focus better.
+                    </p>
+                    <p class="project-description">
+                        This project combines accessibility research with thoughtful UX patterns to create an interface that reduces cognitive overload while maintaining functionality.
+                    </p>
+                    <a href="https://www.figma.com/design/qNOgDCzhL7XZ7HGel5aylV/ThinkFlow?node-id=0-1&t=iDIzCO0IEP1rGypa-1" target="_blank" class="project-link">View Figma Prototype →</a>
+                </div>
+            </div>
+            <div class="page-number">02</div>
+        </div>
+
+        <!-- Page 3: Cyber Breach & Clothing Avatar -->
+        <div class="page" data-page="2">
+            <div class="page-content">
+                <div class="project-card">
+                    <span class="project-tag">Cybersecurity · Development</span>
+                    <h3 class="project-title-card">Cyber Breach Search Engine</h3>
+                    <p class="project-description">
+                        Advanced search engine for cybersecurity breach data analysis and threat intelligence. Built to help security professionals quickly find and analyze breach information.
+                    </p>
+                    <a href="https://github.com/mahithabushap/Cyber-Search-Engine-" target="_blank" class="project-link">View on GitHub →</a>
+                </div>
+
+                <div class="project-card">
+                    <span class="project-tag">3D Technology · E-commerce</span>
+                    <h3 class="project-title-card">Clothing Avatar</h3>
+                    <p class="project-description">
+                        3D virtual fitting extension for online e-commerce clothing stores. Revolutionary shopping experience with 360° avatar visualization that lets customers see how clothes fit before buying.
+                    </p>
+                    <p class="project-description">
+                        Reduces returns and increases customer satisfaction through immersive virtual try-on technology.
+                    </p>
+                    <a href="https://github.com/mahithabushap/fit-avatar-360-view" target="_blank" class="project-link">View on GitHub →</a>
+                </div>
+            </div>
+            <div class="page-number">03</div>
+        </div>
+
+        <!-- Page 4: VisionAIte & Face Recognition -->
+        <div class="page" data-page="3">
+            <div class="page-content">
+                <div class="project-card">
+                    <span class="project-tag">3D Modeling · Event Tech</span>
+                    <h3 class="project-title-card">VisionAIte</h3>
+                    <p class="project-description">
+                        3D modeling platform that integrates customers and businesses for seamless event planning and visualization. Transform event concepts into immersive 3D experiences.
+                    </p>
+                    <p class="project-description">
+                        Helps event planners and clients collaborate in real-time with visual representations of venue layouts, decor, and setups.
+                    </p>
+                    <a href="https://www.visionaite.com" target="_blank" class="project-link">Visit Website →</a>
+                </div>
+
+                <div class="project-card">
+                    <span class="project-tag">AI · Computer Vision</span>
+                    <h3 class="project-title-card">Face Recognition</h3>
+                    <p class="project-description">
+                        Advanced facial recognition system utilizing machine learning algorithms for identity verification and security applications. Built with precision and privacy in mind.
+                    </p>
+                </div>
+            </div>
+            <div class="page-number">04</div>
+        </div>
+
+        <!-- Page 5: The Studio -->
+        <div class="page" data-page="4">
+            <div class="page-content">
+                <div class="doodle doodle-star" style="top: 100px; left: 200px;">✨</div>
+                <h2 class="page-title" style="font-size: 3rem;">The Studio</h2>
+                <p class="handwritten-text" style="font-size: 1.4rem; line-height: 2;">
+                    I work at the <span class="highlight">intersection of design and technology</span>, building solutions that combine AI, 3D visualization, and user-centered design to solve real-world problems.
+                </p>
+                <p class="handwritten-text" style="font-size: 1.4rem; line-height: 2;">
+                    Every project starts with understanding the human need, then crafting experiences that feel natural, accessible, and innovative.
+                </p>
+                <p class="handwritten-text" style="font-size: 1.4rem; line-height: 2; margin-top: 2rem;">
+                    My approach: <span class="highlight">Research deeply</span>, <span class="highlight">prototype quickly</span>, and <span class="highlight">iterate constantly</span>.
+                </p>
+            </div>
+            <div class="page-number">05</div>
+        </div>
+
+        <!-- Page 6: Contact -->
+        <div class="page" data-page="5">
+            <div class="page-content">
+                <div class="doodle doodle-heart" style="top: 80px; right: 120px;">♥</div>
+                <h2 class="page-title" style="font-size: 3rem;">Let's Connect!</h2>
+                <p class="handwritten-text" style="font-size: 1.3rem;">
+                    Thanks for flipping through my portfolio! If you'd like to collaborate, chat about projects, or just say hi, I'd love to hear from you.
+                </p>
+                
+                <div class="contact-info">
+                    <p class="handwritten-text" style="margin-bottom: 1rem; font-size: 1.2rem;">📧 Email me at:</p>
+                    <a href="mailto:mahitha@bushap.com" class="contact-email">mahitha@bushap.com</a>
+                    
+                    <p class="handwritten-text" style="margin-top: 2rem; margin-bottom: 1rem; font-size: 1.2rem;">🔗 Find me on:</p>
+                    <div class="social-links">
+                        <a href="https://github.com/mahithabushap" target="_blank" class="social-link">GitHub</a>
+                        <a href="#" class="social-link">LinkedIn</a>
+                        <a href="#" class="social-link">Instagram</a>
+                    </div>
+                </div>
+
+                <p class="handwritten-text" style="margin-top: 3rem; font-size: 1.5rem; color: var(--pink); text-align: center;">
+                    Thanks for stopping by! ✨
+                </p>
+            </div>
+            <div class="page-number">06</div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav-arrow prev disabled" onclick="prevPage()">←</div>
+    <div class="nav-arrow next" onclick="nextPage()">→</div>
+
+    <!-- Page Indicators -->
+    <div class="page-indicators">
+        <div class="indicator-dot active" onclick="goToPage(0)"></div>
+        <div class="indicator-dot" onclick="goToPage(1)"></div>
+        <div class="indicator-dot" onclick="goToPage(2)"></div>
+        <div class="indicator-dot" onclick="goToPage(3)"></div>
+        <div class="indicator-dot" onclick="goToPage(4)"></div>
+        <div class="indicator-dot" onclick="goToPage(5)"></div>
+    </div>
+
+    <script>
+        let currentPage = 0;
+        const pages = document.querySelectorAll('.page');
+        const totalPages = pages.length;
+        const indicators = document.querySelectorAll('.indicator-dot');
+        const prevBtn = document.querySelector('.nav-arrow.prev');
+        const nextBtn = document.querySelector('.nav-arrow.next');
+
+        function updatePage() {
+            // Update pages
+            pages.forEach((page, index) => {
+                page.classList.remove('active', 'flipped');
+                if (index < currentPage) {
+                    page.classList.add('flipped');
+                } else if (index === currentPage) {
+                    page.classList.add('active');
+                }
+            });
+
+            // Update indicators
+            indicators.forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentPage);
+            });
+
+            // Update navigation buttons
+            prevBtn.classList.toggle('disabled', currentPage === 0);
+            nextBtn.classList.toggle('disabled', currentPage === totalPages - 1);
+
+            // Scroll page content to top
+            const activePage = document.querySelector('.page.active .page-content');
+            if (activePage) {
+                activePage.scrollTop = 0;
+            }
+        }
+
+        function nextPage() {
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+                updatePage();
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 0) {
+                currentPage--;
+                updatePage();
+            }
+        }
+
+        function goToPage(pageNum) {
+            currentPage = pageNum;
+            updatePage();
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') {
+                nextPage();
+            } else if (e.key === 'ArrowLeft') {
+                prevPage();
+            }
+        });
+
+        // Touch swipe support for mobile
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            if (touchEndX < touchStartX - 50) {
+                nextPage();
+            }
+            if (touchEndX > touchStartX + 50) {
+                prevPage();
+            }
+        }
+    </script>
+</body>
+</html>
